@@ -4,6 +4,7 @@
 /* Black and white mobile chart, independent of any uploaded reference file. */
 :root{color:#111;background:#f5f5f5}header{background:#fff;color:#111;border-bottom:2px solid #111}section{border-color:#111;border-radius:0;box-shadow:none}button{background:#111;color:#fff}input,select,.pillar{border-color:#555;border-radius:0}.pill{background:#eee;border-radius:0}.hint,.muted,.pillar small{color:#333}.good,.caution{color:#111}details.row{border-color:#999}
 </style><style>.source-analysis{border:1px solid #111;padding:10px;margin:12px 0;overflow-wrap:anywhere}.source-analysis p{line-height:1.65;margin:10px 0 3px}.source-analysis small{display:block;font-size:12px}.source-analysis summary{font-weight:700;line-height:1.6}.source-analysis details{margin-top:14px}</style><style>.event-advice{border:1px solid #111;padding:12px;margin:12px 0;background:#fff;color:#111}.event-advice-card{border-top:1px solid #bbb;padding:8px 0}.event-advice-card h4{margin:8px 0}.event-advice-card p{margin:8px 0;line-height:1.65}.event-advice-card details{padding:8px;background:#f5f5f5}.event-advice-card summary{cursor:pointer}</style>
+<style>.role-guide{margin:12px 0;padding:12px;border:1px solid #111}.role-guide-scroll{overflow-x:auto;max-width:100%;-webkit-overflow-scrolling:touch}.role-guide table{width:100%;min-width:680px;table-layout:fixed;border-collapse:collapse}.role-guide th,.role-guide td{border:1px solid #999;padding:10px;vertical-align:top;overflow-wrap:anywhere}.role-guide th{background:#eee;color:#111}.role-guide p{line-height:1.6}.role-guide details{margin:10px 0}.role-guide h3{margin-top:0}</style>
 </head><body><header>八字命盤｜五格版</header><main><noscript><section class="warning">目前的檔案預覽未啟用網頁程式。請下載檔案，從 Safari 開啟，才能輸入並計算。</section></noscript><section><h2>出生資料</h2><form id="form" class="grid"><label>姓名<input id="name" autocomplete="name" placeholder="可不填"></label><label>性別<select id="gender"><option value="0">女</option><option value="1">男</option></select></label><label>曆法<select id="calendar"><option value="solar">國曆</option><option value="lunar">農曆</option></select></label><label>出生地<input id="place" placeholder="例如：台北市"></label><label>年<input id="year" type="number" min="1900" max="2100" required></label><label>月<input id="month" type="number" min="1" max="12" required></label><label>日<input id="day" type="number" min="1" max="31" required></label><label>時辰<select id="hour"><option value="0">子時 23–01</option><option value="2">丑時 01–03</option><option value="4">寅時 03–05</option><option value="6">卯時 05–07</option><option value="8">辰時 07–09</option><option value="10">巳時 09–11</option><option value="12">午時 11–13</option><option value="14">未時 13–15</option><option value="16">申時 15–17</option><option value="18">酉時 17–19</option><option value="20">戌時 19–21</option><option value="22">亥時 21–23</option></select></label><label id="leapwrap" style="display:none" class="full"><input id="leap" type="checkbox" style="display:inline;width:auto;min-height:0"> 農曆閏月</label><div class="full hint">以出生地當地時間輸入；時辰交界及節氣交界的出生時間，請核對分鐘。子時採 23:00 換日的排盤慣例。</div><button type="submit" class="full">排八字與大運流年</button></form><p id="error" role="alert" class="caution"></p><p class="hint"><a href="#roleStrip">查看喜用忌五格 ↓</a>　<a href="#combinedYear">查看大運 × 流年逐年分析 ↓</a></p></section><div id="output"><section><h2 id="person"></h2><div id="pillars" class="columns"></div><p id="lunarDate" class="hint"></p></section><section><h2>五行與喜忌設定</h2><p class="hint">喜用忌神依原局、月令、藏干與教材規則初判，並填入五行與十神。同類可有多種五行。這是供核對的推估；特殊格局、合化及阻隔仍需人工判斷。調整下方設定後，逐年分析會同步更新。資料只保存在本機瀏覽器。</p><div id="elements"></div><div id="settings" class="controls"></div></section><section><h2>流年逐年分析（到 100 歲）</h2><p id="yunStart" class="hint"></p><div id="years"></div></section></div><section class="hint" style="max-width:950px;margin:0 auto 16px">
 <button type="button" id="clearLocal" style="background:white;color:#111;border:1px solid #111">清除這支手機的八字資料</button>
 <p>計算參考：<a href="https://www.hko.gov.hk/tc/gts/time/stemsandbranches.htm">香港天文台的天干地支介紹</a>、<a href="https://www.fatemaster.ai/zh-Hant/guides/xing-chong-hui-he">公開的刑沖合害對照</a>、<a href="https://www.8words.ai/zh/explain/zang-gan">公開的藏干對照</a>；排盤使用 <a href="https://github.com/6tail/lunar-typescript">lunar-typescript</a>。合化和喜忌需要核對，頁面中的關係提示不等於事件必然發生。</p>
@@ -324,12 +325,44 @@ function appendEventAdvice(host,a,roleSettings,original){
  if(advice.background){const p=document.createElement('p');p.className='hint';p.textContent='另有 '+advice.background+' 組原局／大運背景關係，列在下方教材分析；未當成本期新增事件。';section.append(p)}host.append(section);
 }
 
+
+function buildRoleGuide(a,settings={}){
+ const order=['喜神','用神','忌神','閒神','仇神'];
+ const meanings={喜神:'輔助用神，或改善命局所需的方向。',用神:'優先處理命局偏旺、偏弱、燥濕或阻隔的方向。',忌神:'目前推估可能增加失衡或妨礙喜用的方向。',閒神:'目前未列主要喜忌；歲運引動後仍需重核。',仇神:'可能助忌或損喜的方向，不能單憑生剋固定指定。'};
+ return {groups:order.map(role=>({role,meaning:meanings[role],items:a.evidence.filter(v=>(settings[v.e]||a.roles[v.e])===role).map(v=>({element:v.e,ten:a.elementTen(v.e),condition:v.usable?'有根且透干，仍需核對位置與力量':'根或透干不足，需核對能否發用'}))})),
+ bridges:a.bridges.map(b=>({route:b.from+'→'+b.e+'→'+b.to,element:b.e,ten:a.elementTen(b.e),role:settings[b.e]||a.roles[b.e]||'待定',explanation:b.from+'原本剋'+b.to+'；以'+b.e+'承接'+b.from+'所生，再生'+b.to+'，候選作用為泄前者、生後者。',roots:b.roots,exposed:b.exposed,affected:b.affected,usable:b.usable}))};
+}
+function appendRoleGuide(host,a,settings){
+ const data=buildRoleGuide(a,settings),section=document.createElement('section');section.className='role-guide';
+ const heading=document.createElement('h3');heading.textContent='喜用忌閒仇橫欄｜五行、十神與通關';section.append(heading);
+ const note=document.createElement('p');note.className='hint';note.textContent='目前採用的分類如下；自動取用為候選，手動設定會同步套用。同一類可含多種五行，未列出的類別不硬湊；有根透干也不代表已確認取用。';section.append(note);
+ const scroll=document.createElement('div');scroll.className='role-guide-scroll';scroll.tabIndex=0;scroll.setAttribute('aria-label','喜神、用神、忌神、閒神、仇神五欄；手機可左右滑動');
+ const table=document.createElement('table'),thead=document.createElement('thead'),head=document.createElement('tr'),tbody=document.createElement('tbody'),row=document.createElement('tr');
+ for(const group of data.groups){
+  const th=document.createElement('th');th.scope='col';th.textContent=group.role;head.append(th);
+  const td=document.createElement('td');
+  if(!group.items.length){const p=document.createElement('p');p.textContent='目前未指定／待核對';td.append(p)}
+  for(const item of group.items){const strong=document.createElement('strong');strong.textContent=item.element;const ten=document.createElement('p');ten.textContent=item.ten;const state=document.createElement('small');state.textContent=item.condition;td.append(strong,ten,state)}
+  const meaning=document.createElement('p');meaning.className='hint';meaning.textContent=group.meaning;td.append(meaning);row.append(td);
+ }
+ thead.append(head);tbody.append(row);table.append(thead,tbody);scroll.append(table);section.append(scroll);
+ const title=document.createElement('h4');title.textContent='如何通關';section.append(title);
+ const intro=document.createElement('p');intro.textContent='通關是以中間五行串起相生路徑，緩和兩端相剋；要查兩端力量、中間五行的根與透干、柱位及阻隔，再看是否幫到喜用。不能只見三個五行就判定通關成功。';section.append(intro);
+ if(!data.bridges.length){const p=document.createElement('p');p.textContent='本組未找到符合目前兩端有勢條件的通關候選；不另外硬指定通關五行。';section.append(p)}
+ for(const b of data.bridges){
+  const item=document.createElement('details'),s=document.createElement('summary');s.textContent=b.route+'｜通關候選 '+b.element+'（'+b.role+'）｜'+b.ten;item.append(s);
+  const p=document.createElement('p');p.textContent=b.explanation+' 根：'+(b.roots.join('、')||'未見')+'；透干：'+(b.exposed.join('、')||'未見')+'。'+(b.usable?'具根與透干，但尚未確認整條通路有效。':'根或透干不足，尚未確認可發用。')+' 受作用：'+(b.affected.join('；')||'未見上述合沖刑破害牽動')+'。目前列'+b.role+'，通關候選不自動升格為用神；若反而助忌、損喜，須另核對。';item.append(p);section.append(item);
+ }
+ host.append(section);
+}
+
 function sourceAnalysis(host,pillars,luck=null,annual=null,original=false){
  host.querySelectorAll(':scope > .source-analysis').forEach(x=>x.remove());
  const a=sourceEngine.analyze(pillars,luck,annual),box=document.createElement('details');box.className='source-analysis';box.open=original;
  const title=document.createElement('summary');
  const meaningful=a.events.filter(e=>!['半合','暗拱'].includes(e.kind));
  title.textContent=(original?'原局':'原局＋'+(luck?'大運＋':'')+(annual?'流年':''))+'｜教材規則自動分析：'+([...new Set(meaningful.map(e=>e.kind))].join('、')||'未見合沖刑破害')+'｜合化候選 '+a.events.filter(e=>e.status==='合化候選；可見條件較齊').length+' 組';box.append(title);
+ appendRoleGuide(box,a,Object.fromEntries(['木','火','土','金','水'].map(e=>[e,$('role'+e)?.value])));
  appendEventAdvice(box,a,Object.fromEntries(['木','火','土','金','水'].map(e=>[e,$('role'+e)?.value])),original);
  function line(text,source){const p=document.createElement('p');p.textContent=text;box.append(p);if(source){const small=document.createElement('small');small.className='hint';small.textContent='依據：'+source;box.append(small)}}
  line('原局日主'+pillars[2][0]+a.basis.own+'：扶身基礎比例 '+a.basis.supportive.toFixed(1)+'%／耗剋 '+a.basis.draining.toFixed(1)+'%，'+(a.basis.boundary?'45%交界，喜忌先保留待定':a.basis.strong?'一般格身強候選':'一般格身弱候選')+'。柱位權重乘上照片中的藏干五行比例，尚未把合化、庫作用或貪生忘剋改算成固定百分比。',a.sources.strength);
