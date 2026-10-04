@@ -153,16 +153,46 @@ function createSourceEngine(){
   }
   for(let i=0;i<xs.length;i++)for(let j=i+1;j<xs.length;j++){
    const a=xs[i],b=xs[j];
+   if(a.p===b.p&&(a.index>=4||b.index>=4))add('伏吟',[a,b],{evidence:'歲運與此柱干支相同，列重複引動；不是必然事件。',source:'王旺平口述「婚戀案例」01:45–02:25'});
    for(const [kind,list] of Object.entries(pairs))if(list.some(p=>match(p,a.p[1],b.p[1])))add(kind,[a,b],{evidence:kind==='刑'&&['寅巳','巳申','寅申','丑戌','戌未','丑未'].some(p=>match(p,a.p[1],b.p[1]))?'兩支相刑；另查第三支是否到齊，不等同三刑齊全。':'已辨識干支關係；事件與喜忌仍看全局。'});
    if(a.p[1]===b.p[1]&&'辰午酉亥'.includes(a.p[1]))add('自刑',[a,b],{evidence:a.p[1]==='亥'?'原網站傳統表列亥亥；照片第45頁表列戌戌，兩者有異，保留差異。':'同支重見，僅列自刑關係。'});
    if(a.p[1]==='戌'&&b.p[1]==='戌')add('自刑（課程異說）',[a,b],{evidence:'照片第45、133頁列戌戌；與原網站亥亥版本不同，待核對，不用此項決定喜忌。'});
    for(const [p,target] of joins)if(match(p,a.p[1],b.p[1]))add('六合',[a,b],qualification([a,b],target));
    for(const [p,target] of stemJoins)if(match(p,a.p[0],b.p[0]))add('天干五合',[a,b],qualification([a,b],target,true));
+   const latent=[];for(const g of H[a.p[1]])for(const h of H[b.p[1]])if(stemJoins.some(([p])=>match(p,g,h)))latent.push(g+h);
+   if(latent.length)add('藏干暗合候選',[a,b],{status:'藏干有合對；不當成天干明合或已成化',evidence:'可見藏干合對 '+[...new Set(latent)].join('、')+'。需核對位置、透出、生剋與引動；不因暗合直接改寫五行力量。',source:'王旺平口述「地支藏干實戰」01:33–01:52；照片第58頁天干五合表'});
   }
   for(const [p,target] of triple){const group=xs.filter(x=>p.includes(x.p[1])),seen=[...new Set(group.map(x=>x.p[1]))];if(seen.length===3)add('三合',[...group],qualification(group,target));else if(seen.length===2)add(seen.includes(p[1])?'半合':'暗拱',group,{target,status:'缺支，不能當成完整三合或已化',evidence:'缺少'+[...p].filter(b=>!seen.includes(b)).join('')+'；保留'+target+'勢候選，不新增不存在的地支。',source:P.combines});}
   for(const [p,target] of meetings){const group=xs.filter(x=>p.includes(x.p[1]));if(new Set(group.map(x=>x.p[1])).size===3)add('三會',group,qualification(group,target));}
   for(const p of ['寅巳申','丑戌未']){const group=xs.filter(x=>p.includes(x.p[1]));if(new Set(group.map(x=>x.p[1])).size===3)add('三刑',group,{evidence:'三支到齊；同時列出其中的合、沖、破、害，不以一個關係覆蓋另一個。'});}
   return events;
+ }
+ function voiceFacts(pillars,luck,annual,events){
+  const xs=actors(pillars,luck,annual),day=pillars[2][0],own=element(day),i=E.indexOf(own),facts=[];
+  const where=xs.filter(x=>x.index<4).flatMap(x=>[...H[x.p[1]]].map(g=>({g,x})));
+  const seen=new Set();
+  for(const {g,x} of where){
+   const key=x.label+g;if(seen.has(key))continue;seen.add(key);
+   const original=xs.filter(y=>y.index<4&&y.p[0]===g),external=xs.filter(y=>y.index>=4&&y.p[0]===g);
+   const peers=xs.filter(y=>element(y.p[0])===element(g)&&y.p[0]!==g);
+   if(original.length||external.length)facts.push({text:x.label+x.p[1]+'藏'+g+element(g)+'／'+ten(day,g)+'：'+(original.length?'原局同字透干 '+original.map(y=>y.label+y.p[0]).join('、'):'原局同字未透')+(external.length?'；歲運新增同字透出 '+external.map(y=>y.label+y.p[0]).join('、'):'')+'。同字透出與同五行通根分開記錄，未新增原局藏干。',source:'王旺平口述「透干與通根」00:59–04:44'});
+   else if(peers.length)facts.push({text:x.label+x.p[1]+'藏'+g+'：同字未透；天干 '+peers.map(y=>y.label+y.p[0]).join('、')+' 有同五行。這是同五行根氣支援，不能記成'+g+'已同字透出。',source:'王旺平口述「透干與通根」00:59–04:44；完整藏干表'});
+  }
+  const virtual=xs.filter(x=>!roots(xs,element(x.p[0])).length);
+  for(const x of virtual)facts.push({text:x.label+x.p[0]+element(x.p[0])+'／'+ten(day,x.p[0])+'：天干見而同五行根未見，列虛透候選；仍查生扶與合絆，不能只因天干有字就認定有力。',source:'王旺平口述「透干與通根」02:26–03:19；「如何找用神」01:48–02:23'});
+  const month=pillars[1][1],main=H[month][0];
+  facts.push({text:'月令'+month+'本氣'+main+element(main)+'／'+ten(day,main)+'；全部藏干 '+[...H[month]].map(g=>g+ten(day,g)).join('、')+'。得令不保證身強，失令不保證身弱，需校正根氣、其餘柱位、生扶及受制。',source:'王旺平口述「月令的重要性」00:00–01:50、「判斷身強身弱的核心」00:00–01:58'});
+  const monthVisible=[...H[month]].filter(g=>xs.some(x=>x.index<4&&x.index!==2&&x.p[0]===g));
+  facts.push({text:'月令透干取格線索：'+(monthVisible.map(g=>g+ten(day,g)).join('、')||'未見原局其他柱同字透出')+'。這是取格候選依據；比劫月令、從格、化格及多神透出仍須另核對，未只憑一字確定格局。',source:'王旺平口述「地支藏干實戰」02:11–02:51；DT-13體用'});
+  const dayEvents=events.filter(ev=>ev.participants.includes('日柱'+pillars[2])&&['天干五合','六合','沖','伏吟'].includes(ev.kind));
+  if(dayEvents.length)facts.push({text:'日柱／日支引動：'+dayEvents.map(ev=>ev.kind+' '+ev.participants.join('×')).join('；')+'。合沖並見時同時保留，不能自動宣告沖已解；婚戀只列宮位象義，不能据此確認結婚、離婚或年份。',source:'王旺平口述「婚戀案例」01:25–03:40'});
+  const ownRoots=xs.filter(x=>[...H[x.p[1]]].some(g=>element(g)===own));
+  const risk=ownRoots.filter(x=>events.some(ev=>['沖','刑','三刑','破','害'].includes(ev.kind)&&ev.participants.includes(x.label+x.p)));
+  facts.push({text:'日主根氣 '+(ownRoots.map(x=>x.label+x.p[1]+'（'+[...H[x.p[1]]].filter(g=>element(g)===own).join('、')+'）').join('、')||'未見')+'；受刑沖破害的根 '+(risk.map(x=>x.label+x.p[1]).join('、')||'未見')+'。受作用表示穩定性需核對，未直接刪除根或判為拔根；透干數量也不能替代根氣深淺。',source:'王旺平口述「判斷身強身弱的核心」01:03–01:58、「藏干案例」00:59–01:56'});
+  const route=[E[(i+4)%5],own,E[(i+1)%5],E[(i+2)%5],E[(i+3)%5]],labels=['印','比劫','食傷','財','官殺'];
+  facts.push({text:'生化路徑：'+route.map((e,n)=>labels[n]+e+'（'+(xs.some(x=>element(x.p[0])===e)?'天干可見':roots(xs,e).length?'藏氣未透':'未見')+'）').join(' → ')+' → 印。未見或藏未透的環節列待核對，不因某個十神缺少就推定人格或必然事件。',source:'王旺平口述「食傷」02:52–03:36；DT-19源流'});
+  facts.push({text:'墓庫通根依實際藏干查驗，未受沖也可能已有根；不能把「沖開庫」當成通根的必要條件。',source:'王旺平口述「判斷身強身弱的核心」01:39–01:58；DT-25真神'});
+  return facts;
  }
  function analyze(pillars,luck=null,annual=null){
   if(!Array.isArray(pillars)||pillars.length!==4||[...pillars,luck,annual].filter(Boolean).some(p=>typeof p!=='string'||p.length!==2||!S.includes(p[0])||!H[p[1]]))throw new Error('干支格式不正確');
@@ -177,7 +207,8 @@ function createSourceEngine(){
   const bridges=[];for(let i=0;i<5;i++){const a=E[i],b=E[(i+2)%5],mid=E[(i+1)%5];if(present[a]>=2&&present[b]>=1){const ev=evidence.find(x=>x.e===mid);bridges.push({from:a,to:b,e:mid,...ev,source:P.flow});}}
   const dry='未戌'.includes(month)&&present.火>present.水,hot='巳午未'.includes(month),cold='亥子丑'.includes(month);
   const climate=cold?{label:'寒季',candidate:'火'}:(hot||dry)?{label:dry?'偏燥候選':'暖季',candidate:'水'}:{label:'未見需優先處理的寒暖燥濕條件',candidate:null};
-  const rank=e=>(evidence.find(x=>x.e===e).usable?2:0)+(favorable.includes(e)?2:0)+(climate.candidate===e?2:0)+(bridges.some(b=>b.e===e)?1:0);
+  const killMonth=ten(day,H[month][0])==='七殺'&&exposure(officer).length>0;
+  const rank=e=>(evidence.find(x=>x.e===e).usable?2:0)+(favorable.includes(e)?2:0)+(climate.candidate===e?2:0)+(bridges.some(b=>b.e===e)?1:0)+(!basis.strong&&killMonth&&e===resource&&evidence.find(x=>x.e===e).usable?2:0);
   const ranked=[...favorable].sort((a,b)=>rank(b)-rank(a));
   const roles=Object.fromEntries(E.map(e=>[e,unfavorable.includes(e)?'忌神':e===ranked[0]?'用神':'喜神']));
   if(basis.boundary)for(const e of E)roles[e]='閒神';
@@ -190,8 +221,49 @@ function createSourceEngine(){
   if(present.木>=1&&present.土>=2)videoNotes.push({text:'木土相制：檢查木根是否受損與水源是否可用，木雖能制土，也可能被土重阻隔。',source:'王旺平影片「土旺之人只會扛不會放」03:31 可見字幕；DT-19、25'});
   if(present.火>=2&&present.木>=1)videoNotes.push({text:'木生火：火已多時，新增木未必有利，須核對泄耗木根與水的制火能力。',source:'王旺平影片「火旺無制、火多木焚」09:01 可見字幕；DT-18、29'});
   const resourceEvidence=evidence.find(x=>x.e===resource),wealthEvidence=evidence.find(x=>x.e===wealth);
-  if(resourceEvidence.roots.length&&wealthEvidence.exposed.length)videoNotes.push({text:'財制印／財壞印候選：'+wealth+'剋'+resource+'，印若為忌可視為制印方向；印若為喜用，須列受損風險，不以十神名稱定吉凶。',source:'王旺平影片「財制印 vs 財壞印」02:48 畫面；DT-25、62'});
-  return {pillars,luck,annual,basis,events,evidence,bridges,roles,favorable,unfavorable,climate,following,storages,incoming,videoNotes,elementTen,sources:P};
+  if(resourceEvidence.roots.length&&wealthEvidence.exposed.length)videoNotes.push({text:'財制印／財壞印候選：'+wealth+'財剋'+resource+'印。依一般扶抑初判，'+(basis.boundary?'旺衰交界，先不分制印或壞印':basis.strong?'身強、印列忌且財列喜，偏向財制印候選':'身弱、印列喜用，列財壞印受損風險')+'；從格、手動喜忌或其他取用不同時須重核。財→官殺'+officer+'→印為通關候選，仍查官殺根透及受制，不自動宣告財已不剋印。',source:'王旺平口述「財制印 vs 財壞印」00:19–00:36、01:29–01:47、03:49–04:27；DT-20、25、62'});
+  const earthMost=E.every(e=>basis.values.土>=basis.values[e]);
+  if(earthMost)videoNotes.push({text:'土量較高的結構：疏土候選木、泄土候選金、潤燥候選水分開檢查。土多是數量，土旺還要看月令與根氣；不是看到土多就把所有木金水固定指定為用神。',source:'王旺平口述「土多土旺」00:00–00:35、03:18–03:35；DT-15、19、30'});
+  if(present.土>=2&&present.水>=1)videoNotes.push({text:'水土相制的來源差異：DT通關候選金，是土→金→水；影片另提木疏土、吸水，屬制土／疏土方向。木與金的作用不同，另查木是否耗水、生火及能否發用。',source:'王旺平口述「土多土旺」06:25–07:00；DT-20通關'});
+  if(earthMost&&roots(xs,'金').length&&!xs.some(x=>'申酉丑'.includes(x.p[1])))videoNotes.push({text:'土多金埋候選：原局土量較高，金根未見申酉丑，須核對土的燥濕、金的透干及水木是否可發用。不能只因土生金就判金一定受益，也未直接宣告金已被埋。',source:'王旺平口述「土多土旺」02:52–03:18、06:07–06:42；DT-25、30'});
+  // 初篩只觸發結構提醒，不把字數或歲運字數當成旺衰定論。
+  const imbalance=(dominant,other,text,source)=>{
+   if(present[dominant]>=2&&present[other]>0&&present[dominant]>present[other])videoNotes.push({text:text+' 本組'+dominant+'的字數／藏氣線索較多；仍查月令、根透、刑沖合絆及其他生扶，未僅按數量判旺。',source});
+  };
+  const candidate=e=>{const v=evidence.find(x=>x.e===e);return e+'（根 '+(v.roots.join('、')||'未見')+'；透 '+(v.exposed.join('、')||'未見')+'；受作用 '+(v.affected.join('；')||'未見')+'）'};
+  imbalance('火','水','火多水弱初篩：水未必能制火；源頭候選 '+candidate('金')+'，金本身也須核對能否承受火制，不直接補水。','王旺平口述「火多火旺」02:21–04:16；「水剋火」01:20–01:51');
+  imbalance('火','木','火多木焚初篩：查木是否被過度泄耗；養木候選 '+candidate('水')+'。水仍須有根可發用，木生火也可能加重火勢。','王旺平口述「火多火旺」05:48–07:25');
+  imbalance('土','火','土多火晦初篩：查土是否偏燥、火是否受泄；潤燥水與疏土木分列候選，木同時生火，不能直接指定為喜用。','王旺平口述「火多火旺」07:42–09:06');
+  imbalance('水','火','水多火弱初篩：通關候選 '+candidate('木')+'，路徑水→木→火；寒局另查火的根氣，不以見火就判吉。','王旺平口述「水剋火」01:51–02:08；DT-20通關');
+  imbalance('水','土','水多土弱初篩：土的制水能力需核對；生土候選 '+candidate('火')+'，火亦可能受水制；泄水木與制水土的作用分開。','王旺平口述「土剋水」01:25–01:49；「水多水旺」02:17–03:31');
+  if(present.水>=2&&exposure('木').length&&!roots(xs,'木').length)videoNotes.push({text:'水多木漂候選：本組水線索較多、木透而未見同五行根；先核對水勢與木的生扶，土穩水與木泄水分開處理，未判為必然漂木。',source:'王旺平口述「水多水旺」03:43–04:02'});
+  imbalance('木','火','木多火塞初篩：木生火不保證火可發用，查木的濕燥、水勢、土制水與金制木；火若已有勢則另查木火過旺，兩種情況不能用同一取用方向。','王旺平口述「木多木旺」03:28–05:00、05:58–06:17');
+  if(present[own]>=2&&present[wealth]>0&&present[own]>present[wealth])videoNotes.push({text:'比劫制財候選：'+own+'比劫與'+wealth+'財並見，查財根是否受制；制比劫的官殺候選 '+candidate(officer)+'，食傷泄比生財候選 '+candidate(output)+'。須合看日主旺衰，不直接推定破財或固定指定官殺為用。',source:'王旺平口述「木多木旺」07:33–08:27；DT-19、25'});
+  if(present[resource]>=2)videoNotes.push({text:'印多初篩：'+resource+'印星線索較多，不能只按「三個以上」確認印旺為忌。財制印候選 '+candidate(wealth)+'；比劫泄印候選 '+candidate(own)+'；食傷輸出候選 '+candidate(output)+'，但印亦制食傷，需校正通路與喜忌。',source:'王旺平口述「印旺為忌」00:20–00:39、02:04–02:17、02:37–03:36；DT-19、25'});
+  imbalance('金','木','金多木弱初篩：制金候選 '+candidate('火')+'；通關候選 '+candidate('水')+'，路徑金→水→木。制金與泄金生木作用分開，不見金木就確認交戰或拔根。','王旺平口述「金剋木」03:54–04:24；DT-20、25');
+  if(exposure('金').length&&exposure('木').length&&!roots(xs,'金').length&&!roots(xs,'木').length)videoNotes.push({text:'金木均虛透：天干有金木相制，但本組未見兩者同五行根。先列無根受制線索，不等同有根交戰，也不推定心理狀態。',source:'王旺平口述「金剋木」04:24–04:41'});
+  if(!basis.strong&&evidence.find(x=>x.e===output).usable&&wealthEvidence.usable)videoNotes.push({text:'身弱取印的例外核對：食傷'+output+'與財'+wealth+'皆具根透，列食傷生財通路候選；印'+resource+'亦剋食傷，不能由身弱直接認定新增印一定有利。原扶抑喜用僅為初判，須核對食傷是否能泄、財是否能承接及印的位置。',source:'王旺平口述「身弱補印」00:16–01:15；DT-19、25'});
+  if(!ownRoots.length&&present[resource]>=2)videoNotes.push({text:'印多而日主無根候選：本組印線索較多、日主同五行根未見；補印與通根不相同，另查比劫根氣、印的生扶通路及從格條件，未自動把印改判為忌或確定從格。',source:'王旺平口述「身弱補印」01:15–01:51；「偏枯與從格」00:37–01:12'});
+  const hiddenWealth=xs.filter(x=>[...H[x.p[1]]].some(g=>element(g)===wealth));
+  if(hiddenWealth.length)videoNotes.push({text:'財的明藏狀態：藏財 '+hiddenWealth.map(x=>x.label+x.p[1]).join('、')+'；明透 '+(wealthEvidence.exposed.join('、')||'未見')+'。未透只是位置狀態，不代表財不存在或必須沖庫才能作用；不能據藏財推定秘密收入、違法或感情行為。',source:'王旺平口述「暗財」00:00–00:19、00:39–01:15；「判斷身強身弱的核心」01:39–01:58；DT-25'});
+  const branchBridge=[['子午','木','寅','卯','子卯刑、卯午破'],['卯酉','水','亥','子','子卯刑、子酉破'],['寅申','水','子','亥','申亥害、寅亥合'],['巳亥','木','卯','寅','寅巳刑害、寅亥合']];
+  for(const [pair,e,preferred,alternative,side] of branchBridge){
+   const clashes=events.filter(ev=>ev.kind==='沖'&&ev.participants.every(p=>pair.includes(p.slice(-1))));
+   if(clashes.length)videoNotes.push({text:'地支通關的課程補充：'+pair+'沖，'+e+'作中間五行候選；此課程優先參考'+preferred+'（本組'+(xs.some(x=>x.p[1]===preferred)?'可見':'未見，不補入命盤')+'）。另支'+alternative+'涉及'+side+'，不能只看五行相生就宣告沖解。子午卯酉互不通關屬此課程取用說法，與基本相生表分開；任何通關仍查根透與承接能力。',source:'王旺平口述「通關用神」00:39–01:35、03:10–03:47；DT-20'});
+  }
+  if(exposure('火').length&&exposure('金').length)videoNotes.push({text:'天干火金相制：土作火→土→金的通關候選；課程優先參考己土，戊土仍保留全局核對，未一律排除。己土 '+(xs.some(x=>x.p[0]==='己')?'天干可見':'天干未見')+'；須查土根及是否過度泄向金，不因土出現就認定火金已通。',source:'王旺平口述「通關用神」01:35–01:53、02:51–03:29'});
+  const tenLocations=name=>xs.flatMap(x=>[...(ten(day,x.p[0])===name?[x.label+x.p[0]+'（天干）']:[]),...[...H[x.p[1]]].filter(g=>ten(day,g)===name).map(g=>x.label+x.p[1]+'藏'+g)]);
+  const owl=tenLocations('偏印'),food=tenLocations('食神');
+  if(owl.length&&food.length)videoNotes.push({text:'梟神奪食候選：偏印 '+owl.join('、')+'；食神 '+food.join('、')+'。先列偏印制食神的可能作用，還要核對位置、根透及力量；食神為喜用時列受制風險，為忌時可能是制忌方向，不能見兩字就確定奪食。財制梟候選 '+candidate(wealth)+'；比劫通關路徑 印→比劫→食傷，未宣告已解。',source:'王旺平口述「梟神奪食」00:00–00:19、01:33–02:43；DT-20、25'});
+  if(basis.supportive>85)videoNotes.push({text:'從強／專旺的另行核對：一般扶抑比例偏高只提供線索；原局財官是否仍有根、能否制化及氣勢是否專一，才是成格待核條件。財 '+candidate(wealth)+'；官殺 '+candidate(officer)+'。若後續確認成格，印比生扶與食傷順泄方向才另取用；目前未套用已成專旺格的喜忌，也未因三合候選而刪除財官藏根。',source:'王旺平口述「專旺用神」00:00–00:56、02:44–03:33；DT-46～49'});
+  if(!basis.boundary)for(const target of favorable){
+   const blocker=E[(E.indexOf(target)+3)%5],medicine=E[(E.indexOf(blocker)+3)%5];
+   if(evidence.find(x=>x.e===target).roots.length&&exposure(blocker).length)videoNotes.push({text:'病藥取用候選：依一般扶抑初判，'+target+'列喜用方向，'+blocker+'可能制'+target+'；制此阻點的藥候選 '+candidate(medicine)+'。須先確認'+target+'確為需保護的作用、阻點有力且位置相及，再查藥會否損及其他喜用；從格或手動喜忌不同時須重核。這裡「病藥」是命理結構術語，不是身體疾病或治療。',source:'王旺平口述「病藥用神」00:18–00:55、04:42–05:26；DT-25、26'});
+  }
+  if(killMonth)videoNotes.push({text:'七殺月令且透干：先核對'+officer+'殺的根氣與力量。印化殺候選 '+candidate(resource)+'；食傷制殺候選 '+candidate(output)+'；比劫抗殺候選 '+candidate(own)+'。'+(!basis.strong?'一般格身弱初判下，印具根透時提高印化殺的取用參考順位；食伤亦泄日主，不能直接優先制殺。':'一般格身強初判仍須查殺是否過強及全局通路。')+' 本順位仍是候選，不代表殺已化或能確定職業、健康。',source:'王旺平口述「扶抑用神」01:15–02:53；DT-19、25'});
+  if(!ownRoots.length&&present[resource]>present[own]&&present[resource]>=2)videoNotes.push({text:'扶抑喜忌需覆核：日主無根且印線索較多，不能把扶身比例高直接等同日主有力。財制印、比劫通根與寒暖調候另查；生用神的五行也可能是其他結構的忌，不自動以相生表指定喜神。',source:'王旺平口述「扶抑用神」03:28–04:40、04:57–05:56；DT-15、25、30'});
+  if(climate.candidate){const temper=climate.candidate,support=temper==='水'?'金':'木';videoNotes.push({text:'調候與扶抑分開取用：'+climate.label+'，調候候選 '+candidate(temper)+'；生助調候的 '+candidate(support)+' 仍查是否反而助長別處的忌。'+(evidence.find(x=>x.e===temper).usable?'本組調候五行具根透，列可發用線索。':'本組調候根或透不足，不因天干有字就認定已調候。')+' 從格、專旺、化格候選另核；調候與扶抑方向不同時保留兩者，未直接蓋過全局。',source:'王旺平口述「調候與喜用忌概念」00:36–02:49；DT-29、30'});}
+  return {pillars,luck,annual,basis,events,evidence,bridges,roles,favorable,unfavorable,climate,following,storages,incoming,videoNotes,voiceFacts:voiceFacts(pillars,luck,annual,events),elementTen,sources:P};
  }
  return {analyze,relationships,score,proportions,ten,element,sources:P};
 }
@@ -217,10 +289,12 @@ function sourceAnalysis(host,pillars,luck=null,annual=null,original=false){
  const dynamic=a.evidence.filter(e=>['用神','喜神'].includes($('role'+e.e)?.value));
  line('目前喜用在本組原局＋歲運的作用：'+(dynamic.map(e=>e.e+'（'+$('role'+e.e).value+'）'+(e.usable?'有根且透干':'根或透干需補查')+(e.affected.length?'，有 '+e.affected.join('；'):'，未見上述牽動')).join('。')||'尚未設定')+'。吉凶不由單一合或沖決定。',a.sources.annual);
  for(const v of a.videoNotes)line(v.text,v.source);
+ const voice=document.createElement('details'),voiceTitle=document.createElement('summary');voiceTitle.textContent='影片口述規則｜透干、根氣與生化路徑';voice.append(voiceTitle);
+ for(const fact of a.voiceFacts){const p=document.createElement('p');p.textContent=fact.text;const small=document.createElement('small');small.className='hint';small.textContent='依據：'+fact.source;voice.append(p,small)}box.append(voice);
  if(original){
   const coverage=document.createElement('details'),s=document.createElement('summary');s.textContent='分析依據與核對狀態';coverage.append(s);
-  const p=document.createElement('p');p.textContent='《滴天髓》使用你現有的63主題規則摘要，並非原典全文逐句校勘。王旺平218頁照片已逐頁檢視，數值與干支表格依可辨識頁面整理；重複、廣告、操作截圖及未清晰內容不推成新規則。29段影片已檢視代表畫面，僅套用已辨識的畫面／字幕規則；口述尚未完整逐字核對，不宣稱全片完成。原始影片、照片及PDF不提供公開連結或下載。';coverage.append(p);
-  const different=document.createElement('p');different.textContent='來源差異：課程照片第45、133頁列戌戌自刑，原網站採亥亥；兩者分開標示。午未六合課程列火／土，此處保留原表土為候選並列異說，不逕判化。從格、成化與45%界線均保留核對條件。';coverage.append(different);box.append(coverage);
+  const p=document.createElement('p');p.textContent='《滴天髓》使用你現有的63主題規則摘要，並非原典全文逐句校勘。王旺平218頁照片已逐頁檢視，數值與干支表格依可辨識頁面整理；重複、廣告、操作截圖及未清晰內容不推成新規則。29段影片音軌完成機器轉錄，從可確認口述整理結構規則，再與照片及既有摘要交叉核對，加入透干通根、生化通路、制泄通關、財印、梟食、病藥及從格條件的自動檢查。古籍引句、同音術語及殘缺片段仍有待核對，未視為全文逐字確認，也未將模糊內容推成規則。原始影片、照片及PDF不提供公開連結或下載。';coverage.append(p);
+  const different=document.createElement('p');different.textContent='來源差異：課程照片第45、133頁列戌戌自刑，原網站採亥亥；兩者分開標示。午未六合課程列火／土，此處保留原表土為候選並列異說，不逕判化。月令口述提40–50%而照片月支35%，此處計分沿用照片，不混算。部分口述簡述午藏丁，完整表仍保留丁己。木疏土與金泄土生水的通關作用分開；庫根可用與沖庫的說法保留來源差異。從格、成化與45%界線均保留核對條件。';coverage.append(different);box.append(coverage);
  }
  host.append(box);
 }
