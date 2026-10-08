@@ -454,6 +454,41 @@ function appendPrivatePhotoNotes(host,a,original=false){
  const status=document.createElement('small');status.className='hint';status.textContent='來源：使用者提供《命運演算法：八字×AI的人生使用說明書》兩批照片；僅採整理出的規則與摘要。原始照片不在公開網站或公開GitHub。缺頁、陰干長生表與不同來源定義保留待核對。';box.append(status);host.append(box);
 }
 
+
+/* 2026-10-08兩段私人錄影：採可辨識畫面與字幕，保留口述逐字核對狀態。 */
+function buildOctoberVideoNotes(a,settings={}){
+ const day=a.pillars[2][0],month=a.pillars[1],hs=privatePhotoRules.hidden;
+ const actors=a.pillars.map((p,i)=>({p,label:['年柱','月柱','日柱','時柱'][i]}));
+ if(a.luck)actors.push({p:a.luck,label:'大運'});if(a.annual)actors.push({p:a.annual,label:'流年'});
+ const own=sourceEngine.element(day),me=sourceEngine.element(hs[month[1]][0]);
+ const rel=me===own?'比和':sourceEngine.element(day)==='未定'?'待核對':(()=>{
+ const es=['木','火','土','金','水'],i=es.indexOf(own),j=es.indexOf(me);
+ return j===(i+1)%5?'日主生月令主氣':j===(i+2)%5?'日主剋月令主氣':j===(i+3)%5?'月令主氣剋日主':'月令主氣生日主';
+ })();
+ const notes=['月令核心：原局月柱'+month+'，月支'+month[1]+'屬'+privatePhotoRules.season[month[1]]+'；主氣'+hs[month[1]][0]+me+'／'+sourceEngine.ten(day,hs[month[1]][0])+'，與日主'+day+own+'為'+rel+'。月令提供季節旺衰及寒暖燥濕的背景，仍需同看其餘三柱、根氣、透干與大運流年；不只見月支就斷定喜忌。'];
+ const touches=a.events.filter(e=>e.participants.some(p=>p.startsWith('月柱')));
+ notes.push('本組月柱引動：'+(touches.length?touches.map(e=>e.kind+' '+e.participants.join(' × ')+(e.status?'（'+e.status+'）':'')).join('；'):'未辨識到上述合沖刑破害直接涉及月柱')+'。工作安排、家庭分工及合作環境可作觀察範圍；符號引動不等於特定事件已发生。');
+ notes.push('大運與月令：月令作為季節背景參與旺衰及起運核對；實際大運方向、起運時間仍依網站既有性別、年干陰陽與節氣計算。本段沒有新增固定權重，也沒有把季節作用直接改成喜用。');
+ const find=t=>actors.flatMap(x=>[...(sourceEngine.ten(day,x.p[0])===t&&x.label!=='日柱'?[x.label+x.p[0]+'透干']:[]),...[...hs[x.p[1]]].filter(s=>sourceEngine.ten(day,s)===t).map(s=>x.label+x.p[1]+'藏'+s)]);
+ const sh=find('傷官'),pc=find('偏財'),fc=find('正財');
+ notes.push('傷官位置：'+(sh.join('、')||'本組未見')+'；偏財位置：'+(pc.join('、')||'本組未見')+'；正財位置：'+(fc.join('、')||'本組未見')+'。透出與兼藏分開呈現，不把同一十神出現直接當成行為證據。');
+ if(sh.length&&pc.length){
+  const es=['木','火','土','金','水'],out=es[(es.indexOf(own)+1)%5],wealth=es[(es.indexOf(own)+2)%5];
+  const state=e=>{const v=a.evidence.find(x=>x.e===e);return e+'（'+(settings[e]||'待定')+'），根 '+(v?.roots.join('、')||'未見')+'、透 '+(v?.exposed.join('、')||'未見')+'、受作用 '+(v?.affected.join('；')||'未見上述牽動');};
+  notes.push('傷官生偏財候選：'+out+'→'+wealth+'。'+state(out)+'；'+state(wealth)+'。本組兩種十神可見，只列關係候選；是否順泄生財仍看柱位與通路，不能認定實際收入或感情結果。');
+  notes.push('互動提醒：表達想法與資源安排可一起核對。與伴侶或合作對象說清楚界線、金錢分工、承諾及實際行動；即使同見傷官與偏財，也不能推定花心、不忠、欺騙或操控。');
+ }else notes.push('本組未同時見傷官與偏財，不套用影片的組合描述；感情與合作仍以實際溝通及行為核對。');
+ if(fc.length)notes.push('正財同見：可觀察固定資源、預算與責任安排，但不能據此保證專情或誠信；同時有正財、偏財也不能斷定存在多段關係。');
+ notes.push('來源核對：採兩段錄影可辨識的投影片與字幕摘要，尚未完成音軌逐字核對。月令相關天體或「科學」說法未作為已驗證因果規則。');
+ return notes;
+}
+function appendOctoberVideoNotes(host,a,settings,original=false){
+ const box=document.createElement('details');box.className='october-video-notes';box.open=original;
+ const summary=document.createElement('summary');summary.textContent='新增2段影片｜月令與十神互動解說';box.append(summary);
+ for(const t of buildOctoberVideoNotes(a,settings)){const p=document.createElement('p');p.textContent=t;box.append(p)}
+ const s=document.createElement('small');s.className='hint';s.textContent='依據：10月8日14:51月令錄影、19:21傷官偏財錄影。原始影片、音軌、擷取畫面及逐字稿不公開；僅使用整理出的規則與解說。';box.append(s);host.append(box);
+}
+
 function sourceAnalysis(host,pillars,luck=null,annual=null,original=false){
  host.querySelectorAll(':scope > .source-analysis').forEach(x=>x.remove());
  const a=sourceEngine.analyze(pillars,luck,annual),box=document.createElement('details');box.className='source-analysis';box.open=original;
@@ -463,6 +498,7 @@ function sourceAnalysis(host,pillars,luck=null,annual=null,original=false){
  appendRoleGuide(box,a,Object.fromEntries(['木','火','土','金','水'].map(e=>[e,$('role'+e)?.value])));
  appendDitianFullNotes(box,a,Object.fromEntries(['木','火','土','金','水'].map(e=>[e,$('role'+e)?.value])));
  appendPrivatePhotoNotes(box,a,original);
+ appendOctoberVideoNotes(box,a,Object.fromEntries(['木','火','土','金','水'].map(e=>[e,$('role'+e)?.value])),original);
  appendEventAdvice(box,a,Object.fromEntries(['木','火','土','金','水'].map(e=>[e,$('role'+e)?.value])),original);
  function line(text,source){const p=document.createElement('p');p.textContent=text;box.append(p);if(source){const small=document.createElement('small');small.className='hint';small.textContent='依據：'+source;box.append(small)}}
  line('原局日主'+pillars[2][0]+a.basis.own+'：扶身基礎比例 '+a.basis.supportive.toFixed(1)+'%／耗剋 '+a.basis.draining.toFixed(1)+'%，'+(a.basis.boundary?'45%交界，喜忌先保留待定':a.basis.strong?'一般格身強候選':'一般格身弱候選')+'。柱位權重乘上照片中的藏干五行比例，尚未把合化、庫作用或貪生忘剋改算成固定百分比。',a.sources.strength);
