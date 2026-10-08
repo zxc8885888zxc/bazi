@@ -403,6 +403,57 @@ function appendDitianFullLibrary(host){
  outer.append(comp);host.append(outer);
 }
 
+
+/* 兩批共15張：只整理規則與解說，不包含原始照片或全文影像。 */
+const privatePhotoRules={
+ stems:'甲乙丙丁戊己庚辛壬癸',branches:'子丑寅卯辰巳午未申酉戌亥',
+ stages:['長生','沐浴','冠帶','臨官','帝旺','衰','病','死','墓','絕','胎','養'],
+ yangStart:{甲:'亥',丙:'寅',戊:'寅',庚:'巳',壬:'申'},
+ symbols:{甲:'大樹',乙:'藤蔓花草',丙:'日光',丁:'燈光',戊:'山地',己:'田園土',庚:'金屬',辛:'珠寶',壬:'江海',癸:'雨露'},
+ hidden:{子:'癸',丑:'己癸辛',寅:'甲丙戊',卯:'乙',辰:'戊乙癸',巳:'丙戊庚',午:'丁己',未:'己丁乙',申:'庚壬戊',酉:'辛',戌:'戊辛丁',亥:'壬甲'},
+ season:{寅:'春初',卯:'春旺',辰:'春末',巳:'夏初',午:'夏旺',未:'夏末',申:'秋初',酉:'秋旺',戌:'秋末',亥:'冬初',子:'冬旺',丑:'冬末'},
+ seasonStore:{辰:['木','水','乙','癸'],未:['火','木','丁','乙'],戌:['金','火','辛','丁'],丑:['水','金','癸','辛']},
+ tenHints:{比肩:'自主與同儕協作',劫財:'同儕競爭與資源分配',食神:'作品、技能與穩定表達',傷官:'創意表達與制度磨合',正財:'固定資源與收支規畫',偏財:'變動資源與機會評估',正官:'責任、制度與職務',七殺:'壓力、挑戰與執行',正印:'學習、支援與照顧',偏印:'專門研究與不同角度'},
+ generative:{比肩:'傷官',劫財:'食神',食神:'正財',傷官:'偏財',正財:'七殺',偏財:'正官',正官:'偏印',七殺:'正印',正印:'比肩',偏印:'劫財'},
+ controlling:{比肩:'偏財',劫財:'正財',食神:'七殺',傷官:'正官',正財:'正印',偏財:'偏印',正官:'劫財',七殺:'比肩',正印:'傷官',偏印:'食神'}
+};
+function buildPrivatePhotoNotes(a){
+ const r=privatePhotoRules,day=a.pillars[2][0];
+ const actors=a.pillars.map((p,i)=>({p,label:['年柱','月柱','日柱','時柱'][i]}));
+ if(a.luck)actors.push({p:a.luck,label:'大運'});
+ if(a.annual)actors.push({p:a.annual,label:'流年'});
+ const visible=new Set(),all=new Set(),notes=[];
+ const polarity=s=>r.stems.indexOf(s)%2===0?'陽':'陰';
+ const stage=(s,b)=>r.yangStart[s]?r.stages[(r.branches.indexOf(b)-r.branches.indexOf(r.yangStart[s])+12)%12]:null;
+ notes.push('日主'+day+'為'+polarity(day)+sourceEngine.element(day)+'，教材以'+r.symbols[day]+'作比喻；比喻用來理解五行特性，不直接認定個性或人生結果。十神以此日主為基準，依生剋及陰陽重新計算。');
+ for(const x of actors){
+  const hs=[...r.hidden[x.p[1]]],stemTen=sourceEngine.ten(day,x.p[0]);
+  visible.add(stemTen);all.add(stemTen);
+  hs.forEach(s=>all.add(sourceEngine.ten(day,s)));
+  const group='寅巳申亥'.includes(x.p[1])?'四生：季節之氣開始':'子午卯酉'.includes(x.p[1])?'四正：季節旺氣':'四墓庫：季節交接與收藏';
+  const hiddenNote=hs.map((s,i)=>s+sourceEngine.element(s)+'／'+sourceEngine.ten(day,s)+(hs.length>1?(i===0?'（本氣）':'（兼藏）'):'')).join('、');
+  const selfStage=stage(x.p[0],x.p[1]),dayStage=stage(day,x.p[1]);
+  notes.push(x.label+x.p+'：天干'+polarity(x.p[0])+sourceEngine.element(x.p[0])+'／'+(x.label==='日柱'?'日主':stemTen)+'；地支'+group+'，'+r.season[x.p[1]]+'；藏干 '+hiddenNote+'。'+(selfStage?'陽干坐支十二長生為'+selfStage+'。':'本批沒有五陰干完整表，陰干十二長生暫不依這批推算。')+(dayStage?'日主對此支為'+dayStage+'。':''));
+  const storage=r.seasonStore[x.p[1]];
+  if(storage)notes.push(x.label+x.p[1]+'：本書以季節餘氣稱'+storage[0]+'之庫（藏'+storage[2]+'），以陽干十二長生稱'+storage[1]+'之墓（藏'+storage[3]+'）。這與網站既有墓庫名稱採不同定義，分別顯示；受沖先記引動，仍需透干、根氣與全局條件確認，不能直接說全部沖出。');
+ }
+ const types=[...all];notes.push('本組可見十神主題：'+types.map(t=>t+'（'+r.tenHints[t]+'）').join('、')+'。藏干出現與天干透出分開核對；十神多寡不直接等於職業、配偶或收入結果。');
+ for(const [relation,mapping] of [['相生',r.generative],['相剋',r.controlling]]){
+  const paths=Object.entries(mapping).filter(([from,to])=>all.has(from)&&all.has(to));
+  if(paths.length)notes.push('十神'+relation+'對照：'+paths.map(([from,to])=>from+'→'+to+(visible.has(from)&&visible.has(to)?'（兩端有透干）':'（含藏干，需核對可發用）')).join('、')+'。這是關係索引；是否形成有效通路，仍看柱位、力量、根氣、阻隔及喜忌，不把表格的「全力」直接換成固定分數。');
+ }
+ const noonJoin=a.events.filter(e=>e.kind.includes('合')&&e.participants.some(p=>p.includes('午'))&&e.participants.some(p=>p.includes('未')));
+ if(noonJoin.length)notes.push('午未六合來源差異：本批表列火；既有網站列土，王旺平教材有火／土說法。此處顯示有合及兩種候選，不以本批照片直接改判成化成功。');
+ notes.push('十二長生的病、死、墓、絕是氣勢階段名稱；不當作疾病、死亡或具體事件的預言。五行時節以節氣與命盤月支核對，不能只用國曆月份替代。');
+ return notes;
+}
+function appendPrivatePhotoNotes(host,a,original=false){
+ const box=document.createElement('details');box.className='private-photo-notes';box.open=original;
+ const heading=document.createElement('summary');heading.textContent='補充教材第1＋2批（15張）｜本命與歲運自動解說';box.append(heading);
+ for(const note of buildPrivatePhotoNotes(a)){const p=document.createElement('p');p.textContent=note;box.append(p)}
+ const status=document.createElement('small');status.className='hint';status.textContent='來源：使用者提供《命運演算法：八字×AI的人生使用說明書》兩批照片；僅採整理出的規則與摘要。原始照片不在公開網站或公開GitHub。缺頁、陰干長生表與不同來源定義保留待核對。';box.append(status);host.append(box);
+}
+
 function sourceAnalysis(host,pillars,luck=null,annual=null,original=false){
  host.querySelectorAll(':scope > .source-analysis').forEach(x=>x.remove());
  const a=sourceEngine.analyze(pillars,luck,annual),box=document.createElement('details');box.className='source-analysis';box.open=original;
@@ -411,6 +462,7 @@ function sourceAnalysis(host,pillars,luck=null,annual=null,original=false){
  title.textContent=(original?'原局':'原局＋'+(luck?'大運＋':'')+(annual?'流年':''))+'｜教材規則自動分析：'+([...new Set(meaningful.map(e=>e.kind))].join('、')||'未見合沖刑破害')+'｜合化候選 '+a.events.filter(e=>e.status==='合化候選；可見條件較齊').length+' 組';box.append(title);
  appendRoleGuide(box,a,Object.fromEntries(['木','火','土','金','水'].map(e=>[e,$('role'+e)?.value])));
  appendDitianFullNotes(box,a,Object.fromEntries(['木','火','土','金','水'].map(e=>[e,$('role'+e)?.value])));
+ appendPrivatePhotoNotes(box,a,original);
  appendEventAdvice(box,a,Object.fromEntries(['木','火','土','金','水'].map(e=>[e,$('role'+e)?.value])),original);
  function line(text,source){const p=document.createElement('p');p.textContent=text;box.append(p);if(source){const small=document.createElement('small');small.className='hint';small.textContent='依據：'+source;box.append(small)}}
  line('原局日主'+pillars[2][0]+a.basis.own+'：扶身基礎比例 '+a.basis.supportive.toFixed(1)+'%／耗剋 '+a.basis.draining.toFixed(1)+'%，'+(a.basis.boundary?'45%交界，喜忌先保留待定':a.basis.strong?'一般格身強候選':'一般格身弱候選')+'。柱位權重乘上照片中的藏干五行比例，尚未把合化、庫作用或貪生忘剋改算成固定百分比。',a.sources.strength);
@@ -627,4 +679,5 @@ function yearAnalysis(pillars){
 $('form').addEventListener('submit',()=>{if($('error').textContent)return;const raw=[...$('pillars').querySelectorAll('.pillar strong')].map(x=>x.textContent.trim());if(raw.length!==4)return;chart(raw);roles(raw);yearAnalysis(raw)});
 })();
 </script></body></html>
+
 
