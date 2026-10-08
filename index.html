@@ -428,7 +428,7 @@ function buildPrivatePhotoNotes(a){
  notes.push('日主'+day+'為'+polarity(day)+sourceEngine.element(day)+'，教材以'+r.symbols[day]+'作比喻；比喻用來理解五行特性，不直接認定個性或人生結果。十神以此日主為基準，依生剋及陰陽重新計算。');
  for(const x of actors){
   const hs=[...r.hidden[x.p[1]]],stemTen=sourceEngine.ten(day,x.p[0]);
-  visible.add(stemTen);all.add(stemTen);
+  if(x.label!=='日柱'){visible.add(stemTen);all.add(stemTen)}
   hs.forEach(s=>all.add(sourceEngine.ten(day,s)));
   const group='寅巳申亥'.includes(x.p[1])?'四生：季節之氣開始':'子午卯酉'.includes(x.p[1])?'四正：季節旺氣':'四墓庫：季節交接與收藏';
   const hiddenNote=hs.map((s,i)=>s+sourceEngine.element(s)+'／'+sourceEngine.ten(day,s)+(hs.length>1?(i===0?'（本氣）':'（兼藏）'):'')).join('、');
@@ -467,8 +467,13 @@ function buildOctoberVideoNotes(a,settings={}){
  })();
  const notes=['月令核心：原局月柱'+month+'，月支'+month[1]+'屬'+privatePhotoRules.season[month[1]]+'；主氣'+hs[month[1]][0]+me+'／'+sourceEngine.ten(day,hs[month[1]][0])+'，與日主'+day+own+'為'+rel+'。月令提供季節旺衰及寒暖燥濕的背景，仍需同看其餘三柱、根氣、透干與大運流年；不只見月支就斷定喜忌。'];
  const touches=a.events.filter(e=>e.participants.some(p=>p.startsWith('月柱')));
- notes.push('本組月柱引動：'+(touches.length?touches.map(e=>e.kind+' '+e.participants.join(' × ')+(e.status?'（'+e.status+'）':'')).join('；'):'未辨識到上述合沖刑破害直接涉及月柱')+'。工作安排、家庭分工及合作環境可作觀察範圍；符號引動不等於特定事件已发生。');
+ notes.push('本組月柱引動：'+(touches.length?touches.map(e=>e.kind+' '+e.participants.join(' × ')+(e.status?'（'+e.status+'）':'')).join('；'):'未辨識到上述合沖刑破害直接涉及月柱')+'。工作安排、家庭分工及合作環境可作觀察範圍；符號引動不等於特定事件已發生。');
  notes.push('大運與月令：月令作為季節背景參與旺衰及起運核對；實際大運方向、起運時間仍依網站既有性別、年干陰陽與節氣計算。本段沒有新增固定權重，也沒有把季節作用直接改成喜用。');
+
+ notes.push('字幕補核（約15秒）：月令影片提全局40–50%的權重；網站計分仍採王旺平照片月支35%。兩種來源分開記錄，本段口述不直接覆蓋原有分數。月令得時也不能抵銷其餘柱位的生剋及阻隔。');
+ if('亥子丑'.includes(month[1]))notes.push('冬季字幕例：水旺、木相、金休、土囚、火死，描述季節氣勢。此處只有冬季示例，不拿它代替完整各季節表；旺相休囚死不等於固定喜忌，也不代表死亡或疾病。');
+ const monthRole=settings[me]||'待定',impacted=touches.filter(e=>['沖','刑','破','害'].some(k=>e.kind===k));
+ notes.push('月令主氣目前列'+monthRole+'；'+(impacted.length?'本組月柱有沖刑破害牽動，請核對主氣及兼藏是否仍能承接、根氣與透干是否受作用。':'本組未辨識到月柱直接受上述沖刑破害。')+'月令列喜用可作資源方向，列忌仇則觀察負擔及制化；不以月令分類保證早年成功或困難。');
  const find=t=>actors.flatMap(x=>[...(sourceEngine.ten(day,x.p[0])===t&&x.label!=='日柱'?[x.label+x.p[0]+'透干']:[]),...[...hs[x.p[1]]].filter(s=>sourceEngine.ten(day,s)===t).map(s=>x.label+x.p[1]+'藏'+s)]);
  const sh=find('傷官'),pc=find('偏財'),fc=find('正財');
  notes.push('傷官位置：'+(sh.join('、')||'本組未見')+'；偏財位置：'+(pc.join('、')||'本組未見')+'；正財位置：'+(fc.join('、')||'本組未見')+'。透出與兼藏分開呈現，不把同一十神出現直接當成行為證據。');
@@ -479,7 +484,7 @@ function buildOctoberVideoNotes(a,settings={}){
   notes.push('互動提醒：表達想法與資源安排可一起核對。與伴侶或合作對象說清楚界線、金錢分工、承諾及實際行動；即使同見傷官與偏財，也不能推定花心、不忠、欺騙或操控。');
  }else notes.push('本組未同時見傷官與偏財，不套用影片的組合描述；感情與合作仍以實際溝通及行為核對。');
  if(fc.length)notes.push('正財同見：可觀察固定資源、預算與責任安排，但不能據此保證專情或誠信；同時有正財、偏財也不能斷定存在多段關係。');
- notes.push('來源核對：採兩段錄影可辨識的投影片與字幕摘要，尚未完成音軌逐字核對。月令相關天體或「科學」說法未作為已驗證因果規則。');
+ notes.push('來源核對：已補查全段每2秒抽取的可辨識字幕與投影片（不是逐幀檢查），尚未完成音軌逐字核對。感情片約89–117秒的「傷官生正財、食神生偏財」標題保留為來源說法；兩者有不同陰陽配對，不能直接取代網站十神生剋表，也不據此推定性能力、出軌或忠誠。月柱六親及天體「科學」說法未作為已驗證因果規則。');
  return notes;
 }
 function appendOctoberVideoNotes(host,a,settings,original=false){
