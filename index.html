@@ -494,6 +494,45 @@ function appendOctoberVideoNotes(host,a,settings,original=false){
  const s=document.createElement('small');s.className='hint';s.textContent='依據：10月8日14:51月令錄影、19:21傷官偏財錄影。原始影片、音軌、擷取畫面及逐字稿不公開；僅使用整理出的規則與解說。';box.append(s);host.append(box);
 }
 
+
+/* 10月9日私有錄影：字幕與板書的條件式規則摘要，原始媒體不嵌入頁面。 */
+function buildOct9ElementNotes(a,settings={}){
+ const day=a.pillars[2][0],H=privatePhotoRules.hidden;
+ const xs=a.pillars.map((p,i)=>({p,label:['年柱','月柱','日柱','時柱'][i]}));
+ if(a.luck)xs.push({p:a.luck,label:'大運'});if(a.annual)xs.push({p:a.annual,label:'流年'});
+ const where=s=>xs.flatMap(x=>[...(x.p[0]===s&&x.label!=='日柱'?[x.label+s+'透干']:[]),...(H[x.p[1]].includes(s)?[x.label+x.p[1]+'藏'+s]:[])]);
+ const evidence=e=>{const v=a.evidence.find(v=>v.e===e);return e+'（'+(settings[e]||'待定')+'）：根 '+(v?.roots.join('、')||'未見')+'；透 '+(v?.exposed.join('、')||'未見')+'；受作用 '+(v?.affected.join('；')||'未見上述牽動');};
+ const notes=['本組日主'+day+sourceEngine.element(day)+'；原局月令'+a.pillars[1][1]+'。以下只匹配影片談到的日主類型；本命比例沿用既有照片計分，運年加入干支作用，沒有新增影片未提供的權重。'];
+ const 土主=xs.filter(x=>H[x.p[1]][0]==='戊'||H[x.p[1]][0]==='己').map(x=>x.label+x.p[1]);
+ const 戊=where('戊'),癸=where('癸'),己=where('己'),壬=where('壬');
+ if('甲乙'.includes(day)){
+  const winter='亥子丑'.includes(a.pillars[1][1]),waterLead=a.basis.values.水>=a.basis.values.木&&a.basis.values.水===Math.max(...Object.values(a.basis.values));
+  notes.push('水多木漂檢查：'+(winter?'原局為冬季月令':'原局不是影片的亥子冬月例')+'；本命水 '+a.basis.values.水.toFixed(1)+'%、木 '+a.basis.values.木.toFixed(1)+'%（既有計分）。'+(winter&&waterLead?'符合冬月及水比例較高的篩查條件，可列水多木漂候選。':'未同時符合冬月與水比例較高的篩查條件，不判水多木漂。')+'仍須查木根、水勢、寒濕、土能否制水與火能否調候，比例不是單獨定格依據。');
+  notes.push('制水與調候：'+evidence('土')+'。'+evidence('火')+'。有土火不等於已解決；須能發用且不反助忌神。影片主要舉亥子，丑為網站冬月背景，保留藏干差異。');
+ }else if(day==='丙'){
+  notes.push('丙火來源條件：戊土 '+(戊.join('、')||'本組未見')+'；癸水 '+(癸.join('、')||'本組未見')+'；以土為主氣的支 '+(土主.join('、')||'未見')+'。');
+  if(戊.length||土主.length)notes.push('土重埋火候選核對：本組可見土，仍需查是否多而有勢、火根、月令與泄耗通路；不只因出現戊土就判定埋火。'+evidence('火')+'。'+evidence('土')+'。');
+  if(癸.length)notes.push('丙火見癸水正官：'+癸.join('、')+'；'+evidence('水')+'。先看官星力量、火能否承受、根與通關；癸水是喜是忌依全局決定，不一律列為日主最怕的天干。');
+  if(!戊.length&&!土主.length&&!癸.length)notes.push('本組未見影片所談的戊土或癸水條件，不套用該描述。');
+ }else if(day==='庚'){
+  notes.push('庚金取癸水來源說法：本組癸水 '+(癸.join('、')||'未見')+'，對庚金為傷官；'+evidence('水')+'。影片未交代完整取用條件，僅列泄秀候選，保留月令、身強弱與寒暖核對；不因庚日主就直接指定癸為用神。');
+ }else if(day==='辛'){
+  notes.push('厚土埋金來源條件：己土 '+(己.join('、')||'未見')+'；以土為主氣的支 '+(土主.join('、')||'未見')+'。'+evidence('土')+'。'+evidence('金')+'。');
+  notes.push((己.length||土主.length?'本組可見土，列為印星作用的核對點。':'本組未見此段所談的己土或土主氣支，不套用厚土描述。')+'需看土是否過多、燥濕、金根與泄化，不把生金直接當成越多越好，也不因一個己土判定埋金。');
+ }else if(day==='壬'){
+  notes.push('己土與壬水來源條件：己土 '+(己.join('、')||'未見')+'，對壬日主為正官；'+evidence('土')+'。'+evidence('水')+'。'+(己.length?'本組可見己土，核對制水是否適度、濕土狀態與木金通路。':'本組未見己土，不套用此段的己土混水描述。')+'混濁屬教材比喻，不直接認定思想不清、人格問題或經商失敗。');
+ }else notes.push('本段未完整說明'+day+'日主的取用條件，不從相近五行自行補造規則。');
+ notes.push('實用提醒：若本組有比例失衡或根透受作用，先核對命盤與運年，再檢查工作分工、溝通及計畫的可行性。教材候選不等於確定吉凶；保留喜用忌閒仇設定及原有通關分析。');
+ notes.push('核對狀態：已檢視約72秒錄影的板書及每2秒抽取的可辨識字幕；畫面有跳轉及部分遮擋，音軌尚未逐字核對。來源：蕭海生，10月9日19:57日主與五行錄影。');
+ return notes;
+}
+function appendOct9ElementNotes(host,a,settings,original=false){
+ const box=document.createElement('details');box.className='oct9-element-notes';box.open=original;
+ const s=document.createElement('summary');s.textContent='新增影片｜日主與五行作用條件';box.append(s);
+ for(const t of buildOct9ElementNotes(a,settings)){const p=document.createElement('p');p.textContent=t;box.append(p)}
+ const p=document.createElement('small');p.className='hint';p.textContent='原始影片、音軌及擷取畫面不公開，只使用整理出的規則與解說。';box.append(p);host.append(box);
+}
+
 function sourceAnalysis(host,pillars,luck=null,annual=null,original=false){
  host.querySelectorAll(':scope > .source-analysis').forEach(x=>x.remove());
  const a=sourceEngine.analyze(pillars,luck,annual),box=document.createElement('details');box.className='source-analysis';box.open=original;
@@ -503,6 +542,7 @@ function sourceAnalysis(host,pillars,luck=null,annual=null,original=false){
  appendRoleGuide(box,a,Object.fromEntries(['木','火','土','金','水'].map(e=>[e,$('role'+e)?.value])));
  appendDitianFullNotes(box,a,Object.fromEntries(['木','火','土','金','水'].map(e=>[e,$('role'+e)?.value])));
  appendPrivatePhotoNotes(box,a,original);
+ appendOct9ElementNotes(box,a,Object.fromEntries(['木','火','土','金','水'].map(e=>[e,$('role'+e)?.value])),original);
  appendOctoberVideoNotes(box,a,Object.fromEntries(['木','火','土','金','水'].map(e=>[e,$('role'+e)?.value])),original);
  appendEventAdvice(box,a,Object.fromEntries(['木','火','土','金','水'].map(e=>[e,$('role'+e)?.value])),original);
  function line(text,source){const p=document.createElement('p');p.textContent=text;box.append(p);if(source){const small=document.createElement('small');small.className='hint';small.textContent='依據：'+source;box.append(small)}}
