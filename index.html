@@ -533,6 +533,40 @@ function appendOct9ElementNotes(host,a,settings,original=false){
  const p=document.createElement('small');p.className='hint';p.textContent='原始影片、音軌及擷取畫面不公開，只使用整理出的規則與解說。';box.append(p);host.append(box);
 }
 
+function buildOct11VideoNotes(a,settings={}){
+ const day=a.pillars[2][0],H=privatePhotoRules.hidden,labels=['年柱','月柱','日柱','時柱'];
+ const xs=a.pillars.map((p,i)=>({p,label:labels[i],i}));
+ if(a.luck)xs.push({p:a.luck,label:'大運',i:4});if(a.annual)xs.push({p:a.annual,label:'流年',i:5});
+ // 日干是參照點，不當成另一顆十神；藏干與透干分開列。
+ const gs=xs.flatMap(x=>[...(x.i!==2?[{g:x.p[0],label:x.label+'透干',visible:true}]:[]),...[...H[x.p[1]]].map(g=>({g,label:x.label+x.p[1]+'藏干',visible:false}))]);
+ const find=t=>gs.filter(x=>sourceEngine.ten(day,x.g)===t),show=items=>items.map(x=>x.label+x.g).join('、')||'未見';
+ const ev=e=>{const v=a.evidence.find(x=>x.e===e);return e+'（'+(settings[e]||a.roles[e]||'待定')+'）：根 '+(v?.roots.join('、')||'未見')+'；透 '+(v?.exposed.join('、')||'未見')+'；牽動 '+(v?.affected.join('；')||'未見');};
+ const target=[['申子辰','酉'],['亥卯未','子'],['寅午戌','卯'],['巳酉丑','午']].find(([group])=>group.includes(a.pillars[2][1]))[1];
+ const peach=xs.filter(x=>x.p[1]===target),peachText=peach.map(x=>x.label+x.p+'（'+[...H[target]].map(g=>g+sourceEngine.ten(day,g)).join('、')+'）').join('；');
+ const romance=['影片一｜桃花與感情互動：依影片的日支起法，日支'+a.pillars[2][1]+'對應桃花'+target+'；'+(peach.length?'本組出現於 '+peachText:'本組未見對應桃花支')+'。年、時柱與大運流年分開標示；未採其他起法補算。'];
+ if(peach.length)romance.push('桃花支內十神作為互動主題索引：財星可觀察資源與承諾，官殺可觀察責任與壓力，比劫可觀察同儕與界線，食傷可觀察表達與共同活動。影片有真愛／爛桃花的分類，這裡不憑單一十神判定對方忠誠、騙財或確定正緣。請確認相處行為、金錢約定與雙方意願。');
+ const spouse=a.events.filter(x=>x.participants.includes('日柱'+a.pillars[2])&&['六合','沖','刑','三刑','破','害','伏吟','三合','三會'].includes(x.kind));
+ romance.push('日支互動：'+(spouse.map(x=>x.kind+' '+x.participants.join('／')+'；'+(x.status||x.evidence)).join('。')||'本組未見上述日支關係')+'。歲運出現桃花或日支引動只代表教材中的關係線索，不保證結婚或分手。');
+ const joins=['甲己','乙庚','丙辛','丁壬','戊癸'],partner=joins.find(p=>p.includes(day)).replace(day,''),own=xs.filter(x=>x.p[0]===day),partners=xs.filter(x=>x.i!==2&&x.p[0]===partner);
+ romance.push('爭合核對：日干'+day+'合對'+partner+'；本組同日干 '+own.map(x=>x.label+x.p).join('、')+'；合對透干 '+(partners.map(x=>x.label+x.p).join('、')||'未見')+'。'+((own.length>1&&partners.length)||(partners.length>1)?'可列多干爭合候選，仍核對相鄰、阻隔、合絆與成化條件。':'未見日干合對的多干爭合組合。')+'不直接推定第三者。喜用忌依現有設定，合不等於化，喜用也不保證關係順利。');
+ const food=find('食神'),wealth=[...find('正財'),...find('偏財')],kill=find('七殺'),seal=find('偏印');
+ const work=['影片二｜食神作用：本組食神 '+show(food)+'；財星 '+show(wealth)+'；七殺 '+show(kill)+'；偏印 '+show(seal)+'。食神取日主所生且同陰陽；影片以才藝、表達、生活感受作解說，不作健康或壽命預測。'];
+ if(food.length){const fe=sourceEngine.element(food[0].g);work.push('食神根透與喜忌：'+ev(fe)+'。日主強弱沿用原局扶抑候選，歲運另外核對生扶與泄耗，不因多一顆食神就重定格局。');
+  if(wealth.length)work.push('食神生財候選：食神與財星同見，可觀察技能、作品或服務如何換成收入；仍需查日主承受力、根氣、位置、阻隔與財星喜忌。沒有足夠條件時不判已生財，更不保證收入或升職。');
+  if(kill.length)work.push('食神制殺候選：食神與七殺同見，需查食神有力、七殺強弱及是否受印剋、被合絆；只有同見不足以判已制殺。實用上檢查工作壓力能否用技能、流程與分工處理，不據此推定傷殘、死亡或已化解危險。');
+  const officer=find('正官').filter(x=>x.visible),fc=food.filter(x=>x.visible),pairs=fc.flatMap(f=>officer.filter(o=>joins.some(p=>p.includes(f.g)&&p.includes(o.g)&&f.g!==o.g)).map(o=>f.label+f.g+'／'+o.label+o.g));
+  if(pairs.length)work.push('食神合官的透干合對：'+pairs.join('；')+'。列為天干合對線索，成化沿用既有條件；不泛稱所有食神都能合官。');
+  if(seal.length)work.push('偏印與食神同見：可列梟神奪食核對點，仍須看偏印是否強而能剋食神、位置是否可作用、食神是否有根及財星是否制印。未核對前不判已奪食；工作上留意過度思考或要求是否阻礙實際產出，不推定感情不專。');
+ }else work.push('本組未見食神，不套用食神生財、制殺、合官或梟神奪食結論；若未來歲運引入，再與原局一起核對。');
+ work.push('用神與提醒：影片稱食神吉神，仍須查是否適合本局；不一律指定食神為用神，也不因喜神就保證好事。保留五格喜用忌閒仇與通關設定。');
+ return [...romance,...work,'核對範圍：10月11日13:38錄影約139秒，核對可辨識板書及代表畫面；14:51錄影約405秒，核對板書及每4秒抽取的可辨識字幕。跳轉、遮擋與未抽到的字句保留待核對；兩段音軌尚未逐字核對。來源：王旺平兩段教材錄影。原始影片、音軌及擷取照片不公開。'];
+}
+function appendOct11VideoNotes(host,a,settings,original=false){
+ const box=document.createElement('details');box.className='oct11-video-notes';box.open=original;
+ const title=document.createElement('summary');title.textContent='新增兩段影片｜桃花互動與食神作用';box.append(title);
+ for(const text of buildOct11VideoNotes(a,settings)){const p=document.createElement('p');p.textContent=text;box.append(p);}host.append(box);
+}
+
 function sourceAnalysis(host,pillars,luck=null,annual=null,original=false){
  host.querySelectorAll(':scope > .source-analysis').forEach(x=>x.remove());
  const a=sourceEngine.analyze(pillars,luck,annual),box=document.createElement('details');box.className='source-analysis';box.open=original;
@@ -542,6 +576,7 @@ function sourceAnalysis(host,pillars,luck=null,annual=null,original=false){
  appendRoleGuide(box,a,Object.fromEntries(['木','火','土','金','水'].map(e=>[e,$('role'+e)?.value])));
  appendDitianFullNotes(box,a,Object.fromEntries(['木','火','土','金','水'].map(e=>[e,$('role'+e)?.value])));
  appendPrivatePhotoNotes(box,a,original);
+ appendOct11VideoNotes(box,a,Object.fromEntries(['木','火','土','金','水'].map(e=>[e,$('role'+e)?.value])),original);
  appendOct9ElementNotes(box,a,Object.fromEntries(['木','火','土','金','水'].map(e=>[e,$('role'+e)?.value])),original);
  appendOctoberVideoNotes(box,a,Object.fromEntries(['木','火','土','金','水'].map(e=>[e,$('role'+e)?.value])),original);
  appendEventAdvice(box,a,Object.fromEntries(['木','火','土','金','水'].map(e=>[e,$('role'+e)?.value])),original);
