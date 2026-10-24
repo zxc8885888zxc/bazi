@@ -567,6 +567,44 @@ function appendOct11VideoNotes(host,a,settings,original=false){
  for(const text of buildOct11VideoNotes(a,settings)){const p=document.createElement('p');p.textContent=text;box.append(p);}host.append(box);
 }
 
+function buildOct24HiddenUnionNotes(a,settings={}){
+ const H=privatePhotoRules.hidden,day=a.pillars[2][0],names=['年柱','月柱','日柱','時柱'];
+ const xs=a.pillars.map((p,i)=>({p,i,label:names[i]}));
+ if(a.luck)xs.push({p:a.luck,i:4,label:'大運'});if(a.annual)xs.push({p:a.annual,i:5,label:'流年'});
+ const stemPairs=['甲己','乙庚','丙辛','丁壬','戊癸'];
+ const match=(pair,a,b)=>a!==b&&pair.includes(a)&&pair.includes(b);
+ // 來源的通合與通祿合分開列；通祿不代表支中實際藏有該祿神。
+ const full=[{pair:'寅丑',pairs:['甲己','丙辛','戊癸']},{pair:'午亥',pairs:['丁壬','甲己']}];
+ const salary=[{pair:'卯申',stem:'乙庚'},{pair:'巳酉',stem:'丙辛'},{pair:'子巳',stem:'戊癸'},{pair:'寅午',stem:'甲己'}];
+ const result=[],facts=[];
+ for(let i=0;i<xs.length;i++)for(let j=i+1;j<xs.length;j++){
+  const x=xs[i],y=xs[j],b=x.p[1],c=y.p[1],f=full.find(t=>match(t.pair,b,c)),l=salary.find(t=>match(t.pair,b,c));
+  if(!f&&!l)continue;
+  const actual=[...new Set([...H[b]].flatMap(g=>[...H[c]].filter(h=>stemPairs.some(p=>match(p,g,h))).map(h=>g+h)))];
+  const touches=x.i===2||y.i===2,when=x.i>=4||y.i>=4?'歲運加入的支配對':'原局內的支配對';
+  const line=(touches?'日支夫妻宮參與':'其他柱位參與')+'｜'+x.label+x.p+'／'+y.label+y.p+'：'+when+'；'+(f?'通合候選，教材合對 '+f.pairs.join('、'):'通祿合候選，教材祿位合對 '+l.stem)+'。實際藏干 '+b+'藏'+H[b]+'，'+c+'藏'+H[c]+'；實際藏干合對 '+(actual.join('、')||'未見，不新增藏干')+'。';
+  facts.push(line);
+  const ten=[...new Set(actual.flatMap(pair=>[...pair].map(g=>g+sourceEngine.ten(day,g))))];
+  const stems=[...new Set(actual.join('').split(''))];
+  const visible=stems.map(g=>g+'透干位置 '+(xs.filter(v=>v.i!==2&&v.p[0]===g).map(v=>v.label+g).join('、')||'未見（日干不算另一顆透干十神）'));
+  const related=a.events.filter(e=>e.participants.includes(x.label+x.p)&&e.participants.includes(y.label+y.p)&&e.kind!=='藏干暗合候選');
+  facts.push('本對十神：'+(ten.join('、')||'未見實藏合對')+'。'+visible.join('；')+'。兩柱同時可見 '+(related.map(e=>e.kind+'（'+(e.status||'關係已辨識')+'）').join('、')||'未見既有表列其他關係')+'，不以暗合覆蓋刑沖破害。');
+ }
+ result.push('本組日主'+day+'，日支'+a.pillars[2][1]+'。本段新增影片所列的寅丑、午亥通合，以及卯申、巳酉、子巳、寅午通祿合；屬來源分類候選，與既有藏干暗合索引並列，不新增不存在的字。');
+ result.push(...(facts.length?facts:['本組未見這段教材所列的支配對，不套用本段暗合描述；既有藏干暗合仍依原規則列出。']));
+ result.push('判斷範圍：日支參與才標為夫妻宮線索；其他柱配對分開列。通祿合是祿位的教材說法，不等於兩支藏干全部相合。例如子實藏癸、巳實藏丙戊庚，巳的本氣仍是丙，不改成戊。日支與其他支有合對，也不能據此推定本人或伴侶隱瞞、暗戀、不忠或外遇。');
+ const involved=[...new Set(xs.flatMap(x=>[...H[x.p[1]]]).map(g=>sourceEngine.element(g)))];
+ result.push('喜忌仍沿用現有設定：'+involved.map(e=>e+' '+(settings[e]||a.roles[e]||'待定')).join('、')+'。暗合只列結構與作用候選，需合看月令、根透、位置、阻隔及歲運；沒有新增百分比、沒有改寫身強身弱，也不因暗合直接判已成化、已引動事件或固定好壞。');
+ result.push('實用提醒：若關係需要改善，可確認溝通、相處時間、財務與交友界線；以實際行為及雙方意願為依據。歲運新增配對只是核對時間點，不是事件預告，也不要求依命盤監控或指控伴侶。');
+ result.push('核對範圍：10月24日08:27錄影約229秒；已檢視各主題板書、代表畫面與每3秒抽取的可辨識字幕。畫面有跳轉、裁切及遮擋；未抽到或看不清的字句保留待核對，口述音軌尚未逐字核對。來源：王旺平「夫妻宮暗合」教材。原始影片、音軌、擷取畫面不公開，只加入整理出的規則與解說。');
+ return result;
+}
+function appendOct24HiddenUnionNotes(host,a,settings,original=false){
+ const box=document.createElement('details');box.className='oct24-hidden-union-notes';box.open=original;
+ const title=document.createElement('summary');title.textContent='新增影片｜夫妻宮暗合、通合與通祿合';box.append(title);
+ for(const text of buildOct24HiddenUnionNotes(a,settings)){const p=document.createElement('p');p.textContent=text;box.append(p);}host.append(box);
+}
+
 function sourceAnalysis(host,pillars,luck=null,annual=null,original=false){
  host.querySelectorAll(':scope > .source-analysis').forEach(x=>x.remove());
  const a=sourceEngine.analyze(pillars,luck,annual),box=document.createElement('details');box.className='source-analysis';box.open=original;
@@ -576,6 +614,7 @@ function sourceAnalysis(host,pillars,luck=null,annual=null,original=false){
  appendRoleGuide(box,a,Object.fromEntries(['木','火','土','金','水'].map(e=>[e,$('role'+e)?.value])));
  appendDitianFullNotes(box,a,Object.fromEntries(['木','火','土','金','水'].map(e=>[e,$('role'+e)?.value])));
  appendPrivatePhotoNotes(box,a,original);
+ appendOct24HiddenUnionNotes(box,a,Object.fromEntries(['木','火','土','金','水'].map(e=>[e,$('role'+e)?.value])),original);
  appendOct11VideoNotes(box,a,Object.fromEntries(['木','火','土','金','水'].map(e=>[e,$('role'+e)?.value])),original);
  appendOct9ElementNotes(box,a,Object.fromEntries(['木','火','土','金','水'].map(e=>[e,$('role'+e)?.value])),original);
  appendOctoberVideoNotes(box,a,Object.fromEntries(['木','火','土','金','水'].map(e=>[e,$('role'+e)?.value])),original);
