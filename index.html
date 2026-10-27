@@ -605,6 +605,44 @@ function appendOct24HiddenUnionNotes(host,a,settings,original=false){
  for(const text of buildOct24HiddenUnionNotes(a,settings)){const p=document.createElement('p');p.textContent=text;box.append(p);}host.append(box);
 }
 
+function buildOct27StemUnionNotes(a,settings={}){
+ const day=a.pillars[2][0],labels=['年柱','月柱','日柱','時柱'];
+ const xs=a.pillars.map((p,i)=>({p,label:labels[i],i}));
+ if(a.luck)xs.push({p:a.luck,label:'大運',i:4});if(a.annual)xs.push({p:a.annual,label:'流年',i:5});
+ const defs=[{pair:'甲己',target:'土',theme:'信用、承諾與資源安排'},
+ {pair:'乙庚',target:'金',theme:'原則、人情與合作界線'},
+ {pair:'丙辛',target:'水',theme:'表達、規範與形象協調'},
+ {pair:'丁壬',target:'木',theme:'學識、創作與感受表達'},
+ {pair:'戊癸',target:'火',theme:'現實需求與願景取捨'}];
+ const relation=g=>g===day?'日主本身':sourceEngine.ten(day,g);
+ const notes=['影片主題：天干五合是干與干的配對，藏干合對仍在原有暗合欄位。本段只檢查原局及本組歲運實際透出的天干；合對、合絆與成化分開，未以影片的象徵敘述改寫五行分數。'];
+ let count=0;
+ for(const d of defs){const left=xs.filter(x=>x.p[0]===d.pair[0]),right=xs.filter(x=>x.p[0]===d.pair[1]);
+  if(!left.length||!right.length)continue;
+  notes.push('【'+d.pair+'合｜'+d.theme+'】'+d.pair[0]+'為'+relation(d.pair[0])+'，'+d.pair[1]+'為'+relation(d.pair[1])+'；教材合化目標'+d.target+'（'+(settings[d.target]||a.roles[d.target]||'待定')+'）。目標只是查驗方向，不代表已化成'+d.target+'。');
+  for(const x of left)for(const y of right){count++;
+   const event=a.events.find(e=>e.kind==='天干五合'&&e.participants.includes(x.label+x.p)&&e.participants.includes(y.label+y.p));
+   const original=x.i<4&&y.i<4,adjacent=original&&Math.abs(x.i-y.i)===1;
+   notes.push(x.label+x.p+'／'+y.label+y.p+'：'+(original?(adjacent?'原局相鄰天干':'原局隔柱天干，另查阻隔'):'歲運新增合對，與原局合看')+'；既有引擎判定 '+(event?.status||'合對候選，條件未完整')+'。'+(event?.evidence||'須查月令、根氣、位置及其他干支作用。'));
+  }
+  if(left.length>1||right.length>1)notes.push('本組'+d.pair+'任一側有多個透干位置，列多干爭合候選；不能把每一對都判為各自有效或同時成化，須核對距離、阻隔及力量。');
+  const v=a.evidence.find(v=>v.e===d.target);notes.push('目標'+d.target+'核對：根 '+(v?.roots.join('、')||'未見')+'；透 '+(v?.exposed.join('、')||'未見')+'；牽動 '+(v?.affected.join('；')||'未見')+'。即使目標有根透，也需完整成化條件，不能單憑此項定化。');
+  if(d.pair==='甲己'&&day==='庚')notes.push('符合影片的庚日主案例：甲偏財與己正印相合，列資源與學習／信用的協調線索。可檢查合作條件、文件承諾與資源分配；不由此推定父母感情、企業成就或名利雙收。');
+  if(d.pair==='丁壬'&&day==='乙')notes.push('符合影片的乙日主案例：丁食神與壬正印相合，列知識與作品表達的協調線索。可安排學習後的實際產出；仍查印剋食神、位置與喜忌，不直接判才華過人或學業成功。');
+  if(d.pair==='戊癸'&&day==='甲')notes.push('符合影片的甲日主案例：戊偏財與癸正印相合，可檢查收入目標與學習／理念是否互相支持。火只是合化目標，未成化不能當作新增食傷；不保證追求財富能帶來創作成就。');
+ }
+ if(!count)notes.push('本組未見天干五合的完整透干配對，不套用本段合絆或成化解說；藏干合對不冒充天干明合。');
+ notes.push('合絆與貪合忘生／忘剋：影片提醒，某干參與合對時，其原有生剋功能可能受牽制。這裡只列待核對作用，不自動刪掉原有生剋、歸零力量或宣告已停止作用。需查是否貼近、根透、爭合、阻隔及歲運同時的刑沖合害。');
+ notes.push('實用提醒：有合作或資源整合機會時，可確認承諾是否能落實、工作分工是否清楚；若感到被牽制，檢查時間、金錢與責任取捨。用實際情況判斷，不把五合當成必然富貴、人格高低或特定事件預告。身強身弱、喜用忌閒仇及通關仍沿用既有分析。');
+ notes.push('核對範圍：10月27日21:37錄影約235秒；已檢視主題板書、代表畫面及每3秒抽取的可辨識字幕。畫面有裁切與遮擋，未抽到或看不清的字句保留待核對；口述音軌尚未逐字核對。來源：王旺平「天干五合」教材。原始影片、音軌及擷取畫面不公開，只加入整理出的規則與解說。');
+ return notes;
+}
+function appendOct27StemUnionNotes(host,a,settings,original=false){
+ const box=document.createElement('details');box.className='oct27-stem-union-notes';box.open=original;
+ const title=document.createElement('summary');title.textContent='新增影片｜天干五合、十神互動與合絆';box.append(title);
+ for(const text of buildOct27StemUnionNotes(a,settings)){const p=document.createElement('p');p.textContent=text;box.append(p);}host.append(box);
+}
+
 function sourceAnalysis(host,pillars,luck=null,annual=null,original=false){
  host.querySelectorAll(':scope > .source-analysis').forEach(x=>x.remove());
  const a=sourceEngine.analyze(pillars,luck,annual),box=document.createElement('details');box.className='source-analysis';box.open=original;
@@ -614,6 +652,7 @@ function sourceAnalysis(host,pillars,luck=null,annual=null,original=false){
  appendRoleGuide(box,a,Object.fromEntries(['木','火','土','金','水'].map(e=>[e,$('role'+e)?.value])));
  appendDitianFullNotes(box,a,Object.fromEntries(['木','火','土','金','水'].map(e=>[e,$('role'+e)?.value])));
  appendPrivatePhotoNotes(box,a,original);
+ appendOct27StemUnionNotes(box,a,Object.fromEntries(['木','火','土','金','水'].map(e=>[e,$('role'+e)?.value])),original);
  appendOct24HiddenUnionNotes(box,a,Object.fromEntries(['木','火','土','金','水'].map(e=>[e,$('role'+e)?.value])),original);
  appendOct11VideoNotes(box,a,Object.fromEntries(['木','火','土','金','水'].map(e=>[e,$('role'+e)?.value])),original);
  appendOct9ElementNotes(box,a,Object.fromEntries(['木','火','土','金','水'].map(e=>[e,$('role'+e)?.value])),original);
